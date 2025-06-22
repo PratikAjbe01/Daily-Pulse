@@ -33,6 +33,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Navbar/>
+        
      <ThemeProvider attribute='class' defaultTheme='light' enableSystem disableTransitionOnChange>
       {children}
      </ThemeProvider>
