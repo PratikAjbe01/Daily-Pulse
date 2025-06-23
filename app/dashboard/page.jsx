@@ -1,16 +1,18 @@
 "use client"
-
 import { useState } from "react"
-import { Plus, Trash2, Trophy,  Flame, Target, LineChart} from "lucide-react"
+import { Plus, Trash2, Edit, Flame, Target, LineChart, Camera, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { UserButton } from "@clerk/nextjs"
+import { Label } from "@/components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DeleteHabitDialog } from "./_components/delete-popup"
 import Link from "next/link"
+import { useUser } from "@clerk/nextjs"
 
 export default function HabitTrackerDashboard() {
+  const {user}=useUser()
   const [habits, setHabits] = useState([
     { id: "1", name: "Drink 8 glasses of water", completed: false, createdAt: new Date() },
     { id: "2", name: "Exercise for 30 minutes", completed: true, createdAt: new Date() },
@@ -18,22 +20,76 @@ export default function HabitTrackerDashboard() {
     { id: "4", name: "Meditate for 10 minutes", completed: true, createdAt: new Date() },
   ])
 
+  const [userData, setUserData] = useState({
+    username: "",
+    imageUrl: "",
+    hasUsername: false,
+    hasImageUrl: false,
+  })
+
+  const [isEditingImage, setIsEditingImage] = useState(false)
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
+  const [tempUsername, setTempUsername] = useState("")
+  const [tempImageFile, setTempImageFile] = useState(null);
+  const [tempImageUrl, setTempImageUrl] = useState("")
   const [newHabitName, setNewHabitName] = useState("")
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     habitId: null,
     habitName: "",
   })
- 
+
   const suggestedHabits = [
     "Drink 8 glasses of water",
     "Exercise for 30 minutes",
     "Read for 20 minutes",
     "Write in journal",
-  
-
   ]
 
+  const handleUsernameEdit = () => {
+    setTempUsername(userData.username)
+    setIsEditingUsername(true)
+  }
+
+
+  const handleImageEdit = () => {
+    setTempImageUrl(userData.imageUrl)
+    setIsEditingImage(true)
+  }
+
+  const handleUsernameCancel = () => {
+    setTempUsername("")
+    setIsEditingUsername(false)
+  }
+
+  const handleImageCancel = () => {
+    setTempImageUrl("")
+    setIsEditingImage(false)
+  }
+
+  const handleAddUsername = () => {
+    setTempUsername("")
+    setIsEditingUsername(true)
+  }
+
+  const handleAddImage = () => {
+    setTempImageUrl("")
+    setIsEditingImage(true)
+  }
+  const handleUsernameSave = async () => {
+  setUserData((prev) => ({ ...prev, username: tempUsername, hasUsername: true }));
+  await saveUserInfoToDb(tempUsername, userData.imageUrl);
+  setIsEditingUsername(false);
+  setTempUsername("");
+};
+
+const handleImageSave = async () => {
+  setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }));
+  await saveUserInfoToDb(userData.username, tempImageUrl);
+  setIsEditingImage(false);
+};
+
+ 
 
   const userStats = {
     currentStreak: 7,
@@ -58,7 +114,6 @@ export default function HabitTrackerDashboard() {
   }
 
   const addSuggestedHabit = (habitName) => {
-
     const habitExists = habits.some((habit) => habit.name.toLowerCase() === habitName.toLowerCase())
     if (!habitExists) {
       const newHabit = {
@@ -97,6 +152,7 @@ export default function HabitTrackerDashboard() {
     }
     closeDeleteDialog()
   }
+
   const getCurrentDate = () => {
     return new Date().toLocaleDateString("en-US", {
       weekday: "long",
@@ -107,7 +163,7 @@ export default function HabitTrackerDashboard() {
   }
 
   return (
-    <div className=" pt-16 min-h-screen bg-background p-6">
+    <div className="pt-16 min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center mb-8">
@@ -120,47 +176,133 @@ export default function HabitTrackerDashboard() {
           {/* Left Div - User Stats */}
           <Card className="h-full">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold">Your Progress</CardTitle>
-           
-                  <UserButton/>
-                
-              </div>
+              <CardTitle className="text-lg font-semibold">Your Profile</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Trophy and Rank */}
-              <div className="flex items-center justify-center mb-4">
-                <div className="text-center">
-                  <Trophy className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
-                  <Badge
-                    variant="secondary"
-                    className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                  >
-                    {userStats.rank} Rank
-                  </Badge>
+              {/* Profile Image Section */}
+              <div className="flex flex-col items-center space-y-3">
+                <div className="relative">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={userData.imageUrl || undefined} alt="Profile" />
+                    <AvatarFallback className="text-lg">
+                      {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1">
+                    <label className="cursor-pointer flex items-center justify-center bg-background rounded-full p-1 border">
+                      <Camera className="h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const fileUrl = URL.createObjectURL(file)
+                            setTempImageFile(file)
+                            setTempImageUrl(fileUrl)
+                            setIsEditingImage(true)
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
+
+                {/* Confirm or cancel image */}
+                {isEditingImage && tempImageUrl && (
+                  <div className="flex space-x-1">
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
+                      onClick={() => {
+                        setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }))
+                        setIsEditingImage(false)
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setTempImageFile(null)
+                        setTempImageUrl("")
+                        setIsEditingImage(false)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Username Section */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Username</Label>
+                {isEditingUsername ? (
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter username"
+                      value={tempUsername}
+                      onChange={(e) => setTempUsername(e.target.value)}
+                      className="text-sm"
+                    />
+                    <div className="flex space-x-1">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
+                        onClick={handleUsernameSave}
+                      >
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleUsernameCancel}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-foreground text-center p-2 bg-muted rounded">
+                      {userData.username || "No username set"}
+                    </div>
+                    {userData.hasUsername ? (
+                      <Button size="sm" variant="outline" onClick={handleUsernameEdit} className="w-full h-7 text-xs">
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit Username
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={handleAddUsername} className="w-full h-7 text-xs">
+                        <User className="h-3 w-3 mr-1" />
+                        Add Username
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
-                  <Flame className="h-6 w-6 text-orange-500 mx-auto mb-1" />
-                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="text-center p-2 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                  <Flame className="h-4 w-4 text-orange-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
                     {userStats.currentStreak}
                   </div>
-                  <div className="text-sm text-orange-600 dark:text-orange-400">Current Streak</div>
+                  <div className="text-xs text-orange-600 dark:text-orange-400">Current Streak</div>
                 </div>
 
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-500 mx-auto mb-1" />
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userStats.longestStreak}</div>
-                  <div className="text-sm text-blue-600 dark:text-blue-400">Longest Streak</div>
+                <div className="text-center p-2 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <Target className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{userStats.longestStreak}</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400">Longest Streak</div>
                 </div>
               </div>
 
               {/* Today's Progress */}
-              <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                <div className="text-lg font-semibold text-green-700 dark:text-green-300">
+              <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded-lg">
+                <div className="text-sm font-semibold text-green-700 dark:text-green-300">
                   {userStats.completedToday} of {userStats.totalHabits} completed today
                 </div>
                 <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-2 mt-2">
@@ -285,17 +427,14 @@ export default function HabitTrackerDashboard() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                          <Button
+                      <Button
                         variant="outline"
                         size="sm"
-                        
-                        className={
-                       
-                        "bg-white-400 hover:bg-gray-300 "
-                        }
+                        className="bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
                       >
-                    <Link href={`habitview/${habit.id}`}> <LineChart/></Link>
-                      
+                        <Link href={`habitview/${habit.id}`}>
+                          <LineChart className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button
                         variant="outline"
@@ -310,7 +449,7 @@ export default function HabitTrackerDashboard() {
                         <Plus className="h-4 w-4" />
                       </Button>
 
-                   <Button
+                      <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openDeleteDialog(habit.id, habit.name)}
@@ -325,7 +464,8 @@ export default function HabitTrackerDashboard() {
             )}
           </CardContent>
         </Card>
-          <DeleteHabitDialog
+
+        <DeleteHabitDialog
           isOpen={deleteDialog.isOpen}
           onClose={closeDeleteDialog}
           onConfirm={confirmDeleteHabit}
