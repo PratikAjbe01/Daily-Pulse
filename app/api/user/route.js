@@ -1,51 +1,29 @@
-import { NextResponse } from 'next/server';
-import { dbConnect } from '../../db/dbConnect';
-import User from '../../config/Users';
+
+import { db } from '@/configs'
+import { users } from '@/configs/schema'
+
+import { eq } from 'drizzle-orm'
+import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   try {
+    const { email } = await req.json()
 
-    const { name, email } = await req.json();
-
- 
-    await dbConnect();
-
-  
-    const user = await User.findOne({ email });
-    if (user) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'User already present with this email',
-        },
-        { status: 400 }
-      );
+    if (!email) {
+      return NextResponse.json({ error: 'Missing email' }, { status: 400 })
     }
 
+    const existing = await db.select().from(users).where(eq(users.email, email))
 
-    const newUser = new User({ name, email });
-    await newUser.save();
+    if (existing.length === 0) {
+      await db.insert(users).values({ email, credit: 5 })
+    }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'User successfully created!',
-        data: {
-          id: newUser._id,
-          fullName: newUser.name,
-          email: newUser.email,
-        },
-      },
-      { status: 201 }
-    );
+    const user = await db.select().from(users).where(eq(users.email, email))
+
+    return NextResponse.json(user[0])
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'Internal Server Error',
-      },
-      { status: 500 }
-    );
+    console.error('DB sync error:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

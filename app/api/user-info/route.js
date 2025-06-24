@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server"
-import { dbConnect } from "../../db/dbConnect"
-import User from "../../config/Users"
+import { NextResponse } from "next/server";
+
+
+import { eq } from "drizzle-orm";
+import { db } from "@/configs";
+import { users } from "@/configs/schema";
 
 export async function POST(req) {
   try {
-    const { name, email, imageUrl } = await req.json()
-
+    const { username, email, imageUrl } = await req.json();
 
     if (!email) {
       return NextResponse.json(
@@ -13,45 +15,58 @@ export async function POST(req) {
           success: false,
           message: "Email is required",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
-    await dbConnect()
+    // Find user by email
+    const foundUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
 
-    const user = await User.findOne({ email })
-    if (!user) {
+    if (foundUsers.length === 0) {
       return NextResponse.json(
         {
           success: false,
           message: "User not found",
         },
-        { status: 404 },
-      )
+        { status: 404 }
+      );
     }
 
+    const user = foundUsers[0];
 
-    if (name) user.name = name
-    if (imageUrl) user.imageUrl = imageUrl
-
-    await user.save()
+    // Update fields
+    await db
+      .update(users)
+      .set({
+        ...(username && {  name: username }),
+        ...(imageUrl && { imageUrl }),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, email));
 
     return NextResponse.json(
       {
         success: true,
         message: "User info updated successfully!",
-        data: user,
+        data: {
+          ...user,
+          name: username ?? user.name,
+          imageUrl: imageUrl ?? user.imageUrl,
+        },
       },
-      { status: 200 }, 
-    )
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Error updating user:", error)
+    console.error("Error updating user:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Internal Server Error",
       },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   }
 }

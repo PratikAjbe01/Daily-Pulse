@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { Plus, Trash2, Edit, Flame, Target, LineChart, Camera, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,12 +19,13 @@ export default function HabitTrackerDashboard() {
     { id: "3", name: "Read for 20 minutes", completed: false, createdAt: new Date() },
     { id: "4", name: "Meditate for 10 minutes", completed: true, createdAt: new Date() },
   ])
-
+const [userId,setUserId]=useState(null);
   const [userData, setUserData] = useState({
     username: "",
     imageUrl: "",
     hasUsername: false,
     hasImageUrl: false,
+    
   })
 
   const [isEditingImage, setIsEditingImage] = useState(false)
@@ -45,6 +46,39 @@ export default function HabitTrackerDashboard() {
     "Read for 20 minutes",
     "Write in journal",
   ]
+
+useEffect(()=>{
+console.log(userId);
+},[userId]);
+
+
+useEffect(() => {
+  async function fetchUserInfo() {
+    if (!user?.primaryEmailAddress?.emailAddress) return;
+
+    try {
+      const res = await fetch(`/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`);
+      if (!res.ok) throw new Error("Failed to fetch user info");
+      const data = await res.json();
+
+      if (data) {
+        setUserData({
+          username: data.name || "",
+          imageUrl: data.imageUrl || "",
+          hasUsername: !!data.name,
+          hasImageUrl: !!data.imageUrl,
+         
+        });
+       setUserId(data.id);
+       
+      }
+    } catch (err) {
+      console.error("Error fetching user info:", err);
+    }
+  }
+
+  fetchUserInfo();
+}, [user]);
 
   const handleUsernameEdit = () => {
     setTempUsername(userData.username)
@@ -102,18 +136,10 @@ const handleImageSave = async () => {
     }
   }
 
-  const addSuggestedHabit = (habitName) => {
-    const habitExists = habits.some((habit) => habit.name.toLowerCase() === habitName.toLowerCase())
-    if (!habitExists) {
-      const newHabit = {
-        id: Date.now().toString(),
-        name: habitName,
-        completed: false,
-        createdAt: new Date(),
-      }
-      setHabits([...habits, newHabit])
-    }
-  }
+const addSuggestedHabit = (habitName) => {
+  setNewHabitName(habitName); 
+};
+
 
   const toggleHabitCompletion = (habitId) => {
     setHabits(habits.map((habit) => (habit.id === habitId ? { ...habit, completed: !habit.completed } : habit)))
@@ -126,6 +152,7 @@ const handleImageSave = async () => {
       habitName,
     })
   }
+
 
   const closeDeleteDialog = () => {
     setDeleteDialog({
@@ -150,6 +177,37 @@ const handleImageSave = async () => {
       day: "numeric",
     })
   }
+  async function saveUserInfoToDb(username, imageUrl) {
+  if (!user?.primaryEmailAddress?.emailAddress) {
+    console.error("No user email found");
+    return;
+  }
+
+  await fetch("/api/user-info", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: user.primaryEmailAddress.emailAddress,
+     name: username,
+      imageUrl
+    })
+  });
+}
+async function createHabit(){
+  if(!userId){
+      console.error("No user id found");
+    return;
+  }
+   await fetch("/api/create-habits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+  userId:userId,
+     name: newHabitName,
+
+    })
+  });
+}
 
   return (
     <div className="pt-16 min-h-screen bg-background p-6">
@@ -201,16 +259,18 @@ const handleImageSave = async () => {
                 {/* Confirm or cancel image */}
                 {isEditingImage && tempImageUrl && (
                   <div className="flex space-x-1">
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
-                      onClick={() => {
-                        setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }))
-                        setIsEditingImage(false)
-                      }}
-                    >
-                      Save
-                    </Button>
+            <Button
+  size="sm"
+  className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
+  onClick={async () => {
+    setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }));
+    await saveUserInfoToDb(userData.username, tempImageUrl);
+    setIsEditingImage(false);
+  }}
+>
+  Save
+</Button>
+
                     <Button
                       size="sm"
                       variant="outline"
@@ -326,7 +386,7 @@ const handleImageSave = async () => {
                     className="w-full"
                   />
                 </div>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" onClick={createHabit}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Habit
                 </Button>

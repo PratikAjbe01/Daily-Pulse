@@ -4,6 +4,8 @@ import {
   varchar,
   integer,
   timestamp,
+   text,      
+  date 
 
 } from "drizzle-orm/pg-core";
 
@@ -21,7 +23,7 @@ export const habits = pgTable("habits", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   name: varchar("name", { length: 255 }).notNull(),
-  description: text("description"),
+
   currentStreak: integer("current_streak").default(0),
   longestStreak: integer("longest_streak").default(0),
   createdAt: timestamp("created_at").defaultNow(),

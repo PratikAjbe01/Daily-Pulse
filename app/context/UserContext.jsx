@@ -29,7 +29,7 @@ export const UserProvider = ({ children }) => {
 
         const data = await res.json()
         setUserData(data);
-      console.log('User saved to mongodb',data);
+      console.log('User saved to neondb',data);
  
       } catch (error) {
         console.error('User sync error:', error)
