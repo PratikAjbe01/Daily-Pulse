@@ -52,30 +52,19 @@ export default function HabitTrackerDashboard() {
   }
 
 
-  const handleImageEdit = () => {
-    setTempImageUrl(userData.imageUrl)
-    setIsEditingImage(true)
-  }
 
   const handleUsernameCancel = () => {
     setTempUsername("")
     setIsEditingUsername(false)
   }
 
-  const handleImageCancel = () => {
-    setTempImageUrl("")
-    setIsEditingImage(false)
-  }
 
   const handleAddUsername = () => {
     setTempUsername("")
     setIsEditingUsername(true)
   }
 
-  const handleAddImage = () => {
-    setTempImageUrl("")
-    setIsEditingImage(true)
-  }
+
   const handleUsernameSave = async () => {
   setUserData((prev) => ({ ...prev, username: tempUsername, hasUsername: true }));
   await saveUserInfoToDb(tempUsername, userData.imageUrl);
@@ -94,7 +83,7 @@ const handleImageSave = async () => {
   const userStats = {
     currentStreak: 7,
     longestStreak: 23,
-    rank: "Gold",
+    rank: 2,
     totalHabits: habits.length,
     completedToday: habits.filter((h) => h.completed).length,
   }

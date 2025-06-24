@@ -30,6 +30,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "drizzle-kit": "^0.31.2",
+    "jsx": "^0.9.89",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.4"
   }
