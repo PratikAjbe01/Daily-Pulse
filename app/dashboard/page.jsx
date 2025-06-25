@@ -10,6 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DeleteHabitDialog } from "./_components/delete-popup"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
+import { db } from "@/configs"
+import { and, eq } from "drizzle-orm"
+import { habits as habitTable } from "@/configs/schema";
+
 
 export default function HabitTrackerDashboard() {
   const {user}=useUser()
@@ -79,6 +83,38 @@ useEffect(() => {
 
   fetchUserInfo();
 }, [user]);
+useEffect(()=>{
+
+userId&& fetchHabits();
+},[userId])
+//   const fetchHabits=async()=>{
+//     try {
+// const result = await db
+//   .select()
+//   .from(habitTable)
+//   .where(eq(habitTable.userId, userId));
+
+ 
+
+
+// setHabits(result);
+//     } catch (error) {
+//       console.log(error);
+//     }
+//   }
+const fetchHabits = async () => {
+  try {
+    const res = await fetch(`/api/get-habits?userId=${userId}`);
+    const json = await res.json();
+    if (json.success) {
+      setHabits(json.data); 
+    } else {
+      console.error(json.message);
+    }
+  } catch (error) {
+    console.error("Error fetching habits:", error);
+  }
+};
 
   const handleUsernameEdit = () => {
     setTempUsername(userData.username)
@@ -141,9 +177,33 @@ const addSuggestedHabit = (habitName) => {
 };
 
 
-  const toggleHabitCompletion = (habitId) => {
-    setHabits(habits.map((habit) => (habit.id === habitId ? { ...habit, completed: !habit.completed } : habit)))
+const toggleHabitCompletion = async (habitId) => {
+  try {
+    const res = await fetch("/api/habit-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ habitId })
+    });
+
+    const json = await res.json();
+    if (!json.success) {
+      console.error(json);
+      return;
+    }
+
+    setHabits((prev) =>
+      prev.map((habit) =>
+        habit.id === habitId
+          ? { ...habit, completed: !habit.completed }
+          : habit
+      )
+    );
+
+  } catch (error) {
+    console.error("Error updating habit:", error);
   }
+};
+
 
   const openDeleteDialog = (habitId, habitName) => {
     setDeleteDialog({
@@ -162,9 +222,17 @@ const addSuggestedHabit = (habitName) => {
     })
   }
 
-  const confirmDeleteHabit = () => {
+  const confirmDeleteHabit = async() => {
     if (deleteDialog.habitId) {
-      setHabits(habits.filter((habit) => habit.id !== deleteDialog.habitId))
+          const result=await db.delete(habitTable)
+        .where(and(eq(habitTable.id,deleteDialog.habitId),
+        eq(habitTable.createdBy,user?.primaryEmailAddress?.emailAddress)))
+        
+        if(result)
+        {
+  console.log('formDeleted');
+            refreshData()
+        }
     }
     closeDeleteDialog()
   }

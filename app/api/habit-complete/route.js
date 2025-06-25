@@ -1,7 +1,8 @@
+import { db } from "@/configs";
+import { habitCompletions, habits } from "@/configs/schema";
+import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { db } from "@/configs/db";
-import { habits, habitCompletions } from "@/configs/schema";
-import { eq, desc } from "drizzle-orm";
+
 
 export async function POST(req) {
   try {
@@ -17,10 +18,16 @@ export async function POST(req) {
     const today = new Date().toISOString().slice(0, 10);
 
     // Insert completion if not already marked
-    const existing = await db.query.habitCompletions.findFirst({
-      where: eq(habitCompletions.habitId, habitId),
-      where: eq(habitCompletions.date, today)
-    });
+
+
+const existing = await db.query.habitCompletions.findFirst({
+  where: and(
+    eq(habitCompletions.habitId, habitId),
+    eq(habitCompletions.date, today)
+  )
+});
+
+
 
     if (existing) {
       return NextResponse.json({

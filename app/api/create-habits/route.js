@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   try {
     const { userId, name } = await req.json();
+    
 
     if (!userId || !name) {
       return NextResponse.json({
