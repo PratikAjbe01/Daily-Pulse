@@ -1,41 +1,43 @@
 "use client"
-import { useState,useEffect } from "react"
-import { Plus, Trash2, Edit, Flame, Target, LineChart, Camera, User } from "lucide-react"
+import { useState, useEffect } from "react"
+import ConfettiExplosion from 'react-confetti-explosion';
+import { Plus, Trash2, Edit, Flame, Target, LineChart, Camera, User, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { DeleteHabitDialog } from "./_components/delete-popup"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
-import { db } from "@/configs"
-import { and, eq } from "drizzle-orm"
-import { habits as habitTable } from "@/configs/schema";
-
 
 export default function HabitTrackerDashboard() {
-  const {user}=useUser()
-  const [habits, setHabits] = useState([
-    { id: "1", name: "Drink 8 glasses of water", completed: false, createdAt: new Date() },
-    { id: "2", name: "Exercise for 30 minutes", completed: true, createdAt: new Date() },
-    { id: "3", name: "Read for 20 minutes", completed: false, createdAt: new Date() },
-    { id: "4", name: "Meditate for 10 minutes", completed: true, createdAt: new Date() },
-  ])
-const [userId,setUserId]=useState(null);
+  const { user } = useUser()
+  const [isDeleting, setIsDeleting] = useState(false)
+    const [isExploding, setIsExploding]=useState(false)
+  const [habits, setHabits] = useState([])
+  const [userId, setUserId] = useState(null)
   const [userData, setUserData] = useState({
     username: "",
     imageUrl: "",
     hasUsername: false,
     hasImageUrl: false,
-    
   })
 
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [tempUsername, setTempUsername] = useState("")
-  const [tempImageFile, setTempImageFile] = useState(null);
+  const [tempImageFile, setTempImageFile] = useState(null)
   const [tempImageUrl, setTempImageUrl] = useState("")
   const [newHabitName, setNewHabitName] = useState("")
   const [deleteDialog, setDeleteDialog] = useState({
@@ -51,104 +53,82 @@ const [userId,setUserId]=useState(null);
     "Write in journal",
   ]
 
-useEffect(()=>{
-console.log(userId);
-},[userId]);
+  useEffect(() => {
+    if (userId) {
+      fetchHabits()
+    }
+  }, [userId])
 
+  useEffect(() => {
+    async function fetchUserInfo() {
+      if (!user?.primaryEmailAddress?.emailAddress) return
 
-useEffect(() => {
-  async function fetchUserInfo() {
-    if (!user?.primaryEmailAddress?.emailAddress) return;
+      try {
+        const res = await fetch(
+          `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+        )
+        if (!res.ok) throw new Error("Failed to fetch user info")
+        const data = await res.json()
 
-    try {
-      const res = await fetch(`/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`);
-      if (!res.ok) throw new Error("Failed to fetch user info");
-      const data = await res.json();
-
-      if (data) {
-        setUserData({
-          username: data.name || "",
-          imageUrl: data.imageUrl || "",
-          hasUsername: !!data.name,
-          hasImageUrl: !!data.imageUrl,
-         
-        });
-       setUserId(data.id);
-       
+        if (data) {
+          setUserData({
+            username: data.name || "",
+            imageUrl: data.imageUrl || "",
+            hasUsername: !!data.name,
+            hasImageUrl: !!data.imageUrl,
+          })
+          setUserId(data.id)
+        }
+      } catch (err) {
+        console.error("Error fetching user info:", err)
       }
-    } catch (err) {
-      console.error("Error fetching user info:", err);
+    }
+
+    fetchUserInfo()
+  }, [user])
+
+  const fetchHabits = async () => {
+    try {
+      const res = await fetch(`/api/get-habits?userId=${userId}`)
+      if (!res.ok) throw new Error("Failed to fetch habits")
+      const json = await res.json()
+      if (json.success) {
+        setHabits(json.data)
+      } else {
+        console.error(json.message)
+      }
+    } catch (error) {
+      console.error("Error fetching habits:", error)
     }
   }
-
-  fetchUserInfo();
-}, [user]);
-useEffect(()=>{
-
-userId&& fetchHabits();
-},[userId])
-//   const fetchHabits=async()=>{
-//     try {
-// const result = await db
-//   .select()
-//   .from(habitTable)
-//   .where(eq(habitTable.userId, userId));
-
- 
-
-
-// setHabits(result);
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   }
-const fetchHabits = async () => {
-  try {
-    const res = await fetch(`/api/get-habits?userId=${userId}`);
-    const json = await res.json();
-    if (json.success) {
-      setHabits(json.data); 
-    } else {
-      console.error(json.message);
-    }
-  } catch (error) {
-    console.error("Error fetching habits:", error);
-  }
-};
 
   const handleUsernameEdit = () => {
     setTempUsername(userData.username)
     setIsEditingUsername(true)
   }
 
-
-
   const handleUsernameCancel = () => {
     setTempUsername("")
     setIsEditingUsername(false)
   }
-
 
   const handleAddUsername = () => {
     setTempUsername("")
     setIsEditingUsername(true)
   }
 
-
   const handleUsernameSave = async () => {
-  setUserData((prev) => ({ ...prev, username: tempUsername, hasUsername: true }));
-  await saveUserInfoToDb(tempUsername, userData.imageUrl);
-  setIsEditingUsername(false);
-  setTempUsername("");
-};
+    setUserData((prev) => ({ ...prev, username: tempUsername, hasUsername: true }))
+    await saveUserInfoToDb(tempUsername, userData.imageUrl)
+    setIsEditingUsername(false)
+    setTempUsername("")
+  }
 
-const handleImageSave = async () => {
-  setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }));
-  await saveUserInfoToDb(userData.username, tempImageUrl);
-  setIsEditingImage(false);
-};
-
- 
+  const handleImageSave = async () => {
+    setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }))
+    await saveUserInfoToDb(userData.username, tempImageUrl)
+    setIsEditingImage(false)
+  }
 
   const userStats = {
     currentStreak: 7,
@@ -158,110 +138,7 @@ const handleImageSave = async () => {
     completedToday: habits.filter((h) => h.completed).length,
   }
 
-  const handleCreateHabit = (e) => {
-    e.preventDefault()
-    if (newHabitName.trim()) {
-      const newHabit = {
-        id: Date.now().toString(),
-        name: newHabitName.trim(),
-        completed: false,
-        createdAt: new Date(),
-      }
-      setHabits([...habits, newHabit])
-      setNewHabitName("")
-    }
-  }
-
-const addSuggestedHabit = (habitName) => {
-  setNewHabitName(habitName); 
-};
-
-
-const toggleHabitCompletion = async (habitId) => {
-  try {
-    const res = await fetch("/api/habit-complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ habitId })
-    });
-
-    const json = await res.json();
-    if (!json.success) {
-      console.error(json);
-      return;
-    }
-
-    setHabits((prev) =>
-      prev.map((habit) =>
-        habit.id === habitId
-          ? { ...habit, completed: !habit.completed }
-          : habit
-      )
-    );
-
-  } catch (error) {
-    console.error("Error updating habit:", error);
-  }
-};
-
-
-  const openDeleteDialog = (habitId, habitName) => {
-    setDeleteDialog({
-      isOpen: true,
-      habitId,
-      habitName,
-    })
-  }
-
-
-  const closeDeleteDialog = () => {
-    setDeleteDialog({
-      isOpen: false,
-      habitId: null,
-      habitName: "",
-    })
-  }
-
-  const confirmDeleteHabit = async() => {
-    if (deleteDialog.habitId) {
-          const result=await db.delete(habitTable)
-        .where(and(eq(habitTable.id,deleteDialog.habitId),
-        eq(habitTable.createdBy,user?.primaryEmailAddress?.emailAddress)))
-        
-        if(result)
-        {
-  console.log('formDeleted');
-            refreshData()
-        }
-    }
-    closeDeleteDialog()
-  }
-
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
-  async function saveUserInfoToDb(username, imageUrl) {
-  if (!user?.primaryEmailAddress?.emailAddress) {
-    console.error("No user email found");
-    return;
-  }
-
-  await fetch("/api/user-info", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: user.primaryEmailAddress.emailAddress,
-     name: username,
-      imageUrl
-    })
-  });
-}
-async function createHabit(){
+ async function createHabit(){
   if(!userId){
       console.error("No user id found");
     return;
@@ -275,7 +152,116 @@ async function createHabit(){
 
     })
   });
+ setIsExploding(true);
+setTimeout(() => setIsExploding(false), 1500);
+setNewHabitName(""); // optionally reset field
+fetchHabits();
 }
+
+  const addSuggestedHabit = (habitName) => {
+    setNewHabitName(habitName)
+  }
+
+  const toggleHabitCompletion = async (habitId) => {
+    try {
+      const res = await fetch("/api/habit-complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ habitId }),
+      })
+
+      const json = await res.json()
+      if (!json.success) {
+        console.error(json)
+        return
+      }
+
+      setHabits((prev) =>
+        prev.map((habit) =>
+          habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
+        )
+      )
+    } catch (error) {
+      console.error("Error updating habit:", error)
+    }
+  }
+
+  const openDeleteDialog = (habitId, habitName) => {
+    setDeleteDialog({
+      isOpen: true,
+      habitId,
+      habitName,
+    })
+  }
+
+  const closeDeleteDialog = () => {
+    setDeleteDialog({
+      isOpen: false,
+      habitId: null,
+      habitName: "",
+    })
+  }
+
+const confirmDeleteHabit = async () => {
+  if (!deleteDialog.habitId || !userId) return;
+
+  setIsDeleting(true);
+  try {
+    const res = await fetch("/api/delete-habit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        habitId: deleteDialog.habitId,
+        userId: userId,
+      }),
+    });
+
+    const json = await res.json();
+    
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || "Failed to delete habit");
+    }
+
+    // Optimistically update the UI
+    setHabits(prev => prev.filter(habit => habit.id !== deleteDialog.habitId));
+  } catch (error) {
+    console.error("Error deleting habit:", error);
+    // You might want to add user feedback here
+  } finally {
+    setIsDeleting(false);
+    closeDeleteDialog();
+  }
+};
+
+  const getCurrentDate = () => {
+    return new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
+  async function saveUserInfoToDb(username, imageUrl) {
+    if (!user?.primaryEmailAddress?.emailAddress) {
+      console.error("No user email found")
+      return
+    }
+
+    try {
+      await fetch("/api/user-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.primaryEmailAddress.emailAddress,
+          name: username,
+          imageUrl,
+        }),
+      })
+    } catch (error) {
+      console.error("Error saving user info:", error)
+    }
+  }
 
   return (
     <div className="pt-16 min-h-screen bg-background p-6">
@@ -285,9 +271,14 @@ async function createHabit(){
           <h1 className="text-3xl font-bold text-foreground mb-2">DailyPulse</h1>
           <p className="text-muted-foreground">Build better habits, one day at a time</p>
         </div>
-
+          {isExploding && (
+  <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none z-50">
+    <ConfettiExplosion />
+  </div>
+)}
         {/* Top Row - User Stats and Create Habit Form */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
           {/* Left Div - User Stats */}
           <Card className="h-full">
             <CardHeader className="pb-4">
@@ -327,18 +318,13 @@ async function createHabit(){
                 {/* Confirm or cancel image */}
                 {isEditingImage && tempImageUrl && (
                   <div className="flex space-x-1">
-            <Button
-  size="sm"
-  className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
-  onClick={async () => {
-    setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }));
-    await saveUserInfoToDb(userData.username, tempImageUrl);
-    setIsEditingImage(false);
-  }}
->
-  Save
-</Button>
-
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 h-7 text-xs flex-1"
+                      onClick={handleImageSave}
+                    >
+                      Save
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -440,7 +426,10 @@ async function createHabit(){
               <CardTitle className="text-lg font-semibold">Create New Habit</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleCreateHabit} className="space-y-4">
+              <form onSubmit={(e) => {
+    e.preventDefault(); // prevent refresh
+    createHabit();
+  }} className="space-y-4">
                 <div>
                   <label htmlFor="habitName" className="block text-sm font-medium text-foreground mb-2">
                     Habit Name
@@ -454,7 +443,7 @@ async function createHabit(){
                     className="w-full"
                   />
                 </div>
-                <Button type="submit" className="w-full" onClick={createHabit}>
+             <Button type="submit" className="w-full" >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Habit
                 </Button>
@@ -497,9 +486,12 @@ async function createHabit(){
 
         {/* Bottom Div - Habits List */}
         <Card className="w-full">
+
+
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">Today's Habits</CardTitle>
+           
               <div className="text-sm text-muted-foreground font-medium">{getCurrentDate()}</div>
             </div>
           </CardHeader>
@@ -521,7 +513,8 @@ async function createHabit(){
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <div
+                      <button
+                        onClick={() => toggleHabitCompletion(habit.id)}
                         className={`w-4 h-4 rounded-full border-2 ${
                           habit.completed ? "bg-green-500 border-green-500" : "border-muted-foreground/30"
                         }`}
@@ -582,12 +575,34 @@ async function createHabit(){
           </CardContent>
         </Card>
 
-        <DeleteHabitDialog
-          isOpen={deleteDialog.isOpen}
-          onClose={closeDeleteDialog}
-          onConfirm={confirmDeleteHabit}
-          habitName={deleteDialog.habitName}
-        />
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialog.isOpen} onOpenChange={closeDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the habit "{deleteDialog.habitName}" and all its data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+             <AlertDialogAction
+  onClick={confirmDeleteHabit}
+  className="bg-red-600 hover:bg-red-700"
+  disabled={isDeleting}
+>
+  {isDeleting ? (
+    <span className="flex items-center">
+      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      Deleting...
+    </span>
+  ) : (
+    "Delete"
+  )}
+</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

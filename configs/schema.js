@@ -21,7 +21,7 @@ export const users = pgTable("users", {
 
 export const habits = pgTable("habits", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+ userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
 
   currentStreak: integer("current_streak").default(0),
@@ -33,6 +33,6 @@ export const habits = pgTable("habits", {
 
 export const habitCompletions = pgTable("habit_completions", {
   id: serial("id").primaryKey(),
-  habitId: integer("habit_id").notNull().references(() => habits.id),
+  habitId: integer("habit_id").notNull().references(() => habits.id, { onDelete: "cascade" }),
   date: date("date").notNull(),
 });
