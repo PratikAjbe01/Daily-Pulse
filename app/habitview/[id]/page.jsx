@@ -1,12 +1,19 @@
-import React from 'react'
-import YearlyHeatmap from '../_components/heatmap'
+'use client'
 
-function page() {
+import YearlyHeatmap from '../_components/heatmap'
+import { useParams } from 'next/navigation'
+
+
+
+function Page() {
+ const params = useParams();
+  const habitId = params.id;
   return (
-    <div className='pt-16'>
-      <YearlyHeatmap/>
+    <div className='pt-17'>
+     
+      <YearlyHeatmap habitid={habitId}/>
     </div>
   )
 }
 
-export default page
+export default Page

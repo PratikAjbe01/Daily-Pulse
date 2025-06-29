@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Trophy, Medal, Award, Crown, Users } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,49 +14,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { db } from "@/configs"
+import { users } from "@/configs/schema"
 
 export default function RankingPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const usersPerPage = 10
+    const [allUsers,setAllUsers]=useState([]);
+useEffect(()=>{
+const fetchallUser=async()=>{
+  const userList = await db.select().from(users);
+  const sortedUsers = userList.sort((a, b) => b.trophyCount - a.trophyCount);
+  console.log(sortedUsers)
+setAllUsers(sortedUsers);
 
+}
+fetchallUser();
+},[])
   
-  const allUsers = [
-    { id: 1, username: "HabitMaster2024", trophies: 1250 },
-    { id: 2, username: "StreakKing", trophies: 1180 },
-    { id: 3, username: "DailyGrinder", trophies: 1120 },
-    { id: 4, username: "ConsistentAce", trophies: 1050 },
-    { id: 5, username: "HabitHero", trophies: 980 },
-    { id: 6, username: "MotivatedMike", trophies: 920 },
-    { id: 7, username: "FocusedFinn", trophies: 890 },
-    { id: 8, username: "DisciplinedDan", trophies: 850 },
-    { id: 9, username: "RoutineRuler", trophies: 820 },
-    { id: 10, username: "GoalGetter", trophies: 780 },
-    { id: 11, username: "ProgressPro", trophies: 750 },
-    { id: 12, username: "HabitBuilder", trophies: 720 },
-    { id: 13, username: "ConsistencyQueen", trophies: 690 },
-    { id: 14, username: "StreakSeeker", trophies: 660 },
-    { id: 15, username: "DailyDoer", trophies: 630 },
-    { id: 16, username: "MorningWarrior", trophies: 600 },
-    { id: 17, username: "EveningAchiever", trophies: 570 },
-    { id: 18, username: "WeeklyWinner", trophies: 540 },
-    { id: 19, username: "MonthlyMaster", trophies: 510 },
-    { id: 20, username: "YearlyYogi", trophies: 480 },
-    { id: 21, username: "FitnessFirst", trophies: 450 },
-    { id: 22, username: "ReadingRocket", trophies: 420 },
-    { id: 23, username: "MeditationMaven", trophies: 390 },
-    { id: 24, username: "WaterWarrior", trophies: 360 },
-    { id: 25, username: "SleepScheduler", trophies: 330 },
-    { id: 26, username: "HealthyHabits", trophies: 300 },
-    { id: 27, username: "WellnessWizard", trophies: 270 },
-    { id: 28, username: "LifestyleLegend", trophies: 240 },
-    { id: 29, username: "BalancedBeing", trophies: 210 },
-    { id: 30, username: "MindfulMover", trophies: 180 },
-    { id: 31, username: "PositivePerson", trophies: 150 },
-    { id: 32, username: "GrowthGuru", trophies: 120 },
-    { id: 33, username: "ChangeMaker", trophies: 90 },
-    { id: 34, username: "NewBeginning", trophies: 60 },
-    { id: 35, username: "FreshStart", trophies: 30 },
-  ]
+
 
   const totalPages = Math.ceil(allUsers.length / usersPerPage)
   const startIndex = (currentPage - 1) * usersPerPage
@@ -107,14 +83,14 @@ export default function RankingPage() {
           <Card>
             <CardContent className="p-4 text-center">
               <Trophy className="h-6 w-6 text-yellow-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{allUsers[0]?.trophies || 0}</div>
+              <div className="text-2xl font-bold text-foreground">{allUsers[0]?.trophyCount || 0}</div>
               <div className="text-sm text-muted-foreground">Top Score</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <Crown className="h-6 w-6 text-purple-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-foreground">{allUsers[0]?.username || "N/A"}</div>
+              <div className="text-2xl font-bold text-foreground">{allUsers[0]?.name || "N/A"}</div>
               <div className="text-sm text-muted-foreground">Current Leader</div>
             </CardContent>
           </Card>
@@ -154,11 +130,11 @@ export default function RankingPage() {
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                            {user.username.charAt(0).toUpperCase()}
+                          {(user.name || "N/A").charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-semibold text-foreground">{user.username}</div>
+                          <div className="font-semibold text-foreground">{user.name}</div>
                         </div>
                       </div>
                     </div>
@@ -166,7 +142,7 @@ export default function RankingPage() {
                     {/* Trophies */}
                     <div className="flex items-center space-x-2">
                       <Trophy className="h-5 w-5 text-yellow-500" />
-                      <span className="text-xl font-bold text-foreground">{user.trophies.toLocaleString()}</span>
+                      <span className="text-xl font-bold text-foreground">{user.trophyCount.toLocaleString()}</span>
                     </div>
                   </div>
                 )

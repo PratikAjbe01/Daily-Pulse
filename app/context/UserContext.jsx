@@ -9,6 +9,7 @@ const UserContext = createContext()
 export const UserProvider = ({ children }) => {
   const { user, isLoaded } = useUser()
    const [userData,setUserData]=useState();
+   const [loadagain,setLoadagain]=useState(false);
 
 
 
@@ -29,7 +30,7 @@ export const UserProvider = ({ children }) => {
 
         const data = await res.json()
         setUserData(data);
-      console.log('User saved to neondb',data);
+     
  
       } catch (error) {
         console.error('User sync error:', error)
@@ -39,10 +40,10 @@ export const UserProvider = ({ children }) => {
     }
 
     syncUserWithDB()
-  }, [user, isLoaded])
+  }, [user, isLoaded,loadagain])
 
   return (
-    <UserContext.Provider value={userData}>
+    <UserContext.Provider value={userData} setLoadagain={setLoadagain} loadagain={loadagain}>
       {children}
     </UserContext.Provider>
   )

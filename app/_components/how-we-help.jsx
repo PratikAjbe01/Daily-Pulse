@@ -40,7 +40,7 @@ export default function HowWeHelpSection() {
   ]
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-20 bg-muted/30 max-w-7xl mx-auto px-4  ">
       <div className="container px-4 md:px-6 mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
@@ -81,7 +81,7 @@ export default function HowWeHelpSection() {
               <div className="text-sm text-muted-foreground/70">To form a new habit with DailyPulse</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-primary mb-2">50K+</div>
+              <div className="text-3xl font-bold text-primary mb-2">50+</div>
               <div className="text-muted-foreground">Happy Users</div>
               <div className="text-sm text-muted-foreground/70">Building better habits every day</div>
             </div>

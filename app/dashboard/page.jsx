@@ -20,19 +20,24 @@ import {
 } from "@/components/ui/alert-dialog"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
+import { useAppUser } from "../context/UserContext";
 
 export default function HabitTrackerDashboard() {
   const { user } = useUser()
+   const loadagain=useAppUser()
+    const setLoadagain=useAppUser()
   const [isDeleting, setIsDeleting] = useState(false)
     const [isExploding, setIsExploding]=useState(false)
-  const [habits, setHabits] = useState([])
+  const [habits, setHabits] = useState([ ])
   const [userId, setUserId] = useState(null)
   const [userData, setUserData] = useState({
     username: "",
     imageUrl: "",
     hasUsername: false,
     hasImageUrl: false,
+    
   })
+  const [trophy,setTrophy]=useState(0);
 
   const [isEditingImage, setIsEditingImage] = useState(false)
   const [isEditingUsername, setIsEditingUsername] = useState(false)
@@ -58,8 +63,7 @@ export default function HabitTrackerDashboard() {
       fetchHabits()
     }
   }, [userId])
-
-  useEffect(() => {
+ useEffect(() => {
     async function fetchUserInfo() {
       if (!user?.primaryEmailAddress?.emailAddress) return
 
@@ -70,14 +74,16 @@ export default function HabitTrackerDashboard() {
         if (!res.ok) throw new Error("Failed to fetch user info")
         const data = await res.json()
 
-        if (data) {
-          setUserData({
-            username: data.name || "",
-            imageUrl: data.imageUrl || "",
-            hasUsername: !!data.name,
-            hasImageUrl: !!data.imageUrl,
-          })
-          setUserId(data.id)
+   if (data) {
+    setTrophy(data.trophyCount);
+        setUserData({
+          username: data.name || "",
+          imageUrl: data.imageUrl || "",
+          hasUsername: !!data.name,
+          hasImageUrl: !!data.imageUrl,
+        
+        });
+        setUserId(data.id);
         }
       } catch (err) {
         console.error("Error fetching user info:", err)
@@ -86,6 +92,7 @@ export default function HabitTrackerDashboard() {
 
     fetchUserInfo()
   }, [user])
+
 
   const fetchHabits = async () => {
     try {
@@ -117,12 +124,31 @@ export default function HabitTrackerDashboard() {
     setIsEditingUsername(true)
   }
 
-  const handleUsernameSave = async () => {
-    setUserData((prev) => ({ ...prev, username: tempUsername, hasUsername: true }))
-    await saveUserInfoToDb(tempUsername, userData.imageUrl)
-    setIsEditingUsername(false)
-    setTempUsername("")
+const handleUsernameSave = async () => {
+  try {
+   
+   setUserData(prev => ({
+        ...prev,
+  
+      }));
+    
+   
+    await saveUserInfoToDb(tempUsername, userData.imageUrl);
+    
+ 
+    setIsEditingUsername(false);
+    
+    
+  } catch (error) {
+    console.error("Failed to save username:", error);
+ 
+    setUserData(prev => ({ 
+      ...prev, 
+      username: prev.username, 
+      hasUsername: !!prev.username 
+    }));
   }
+};
 
   const handleImageSave = async () => {
     setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }))
@@ -154,7 +180,7 @@ export default function HabitTrackerDashboard() {
   });
  setIsExploding(true);
 setTimeout(() => setIsExploding(false), 1500);
-setNewHabitName(""); // optionally reset field
+setNewHabitName(""); 
 fetchHabits();
 }
 
@@ -162,30 +188,32 @@ fetchHabits();
     setNewHabitName(habitName)
   }
 
-  const toggleHabitCompletion = async (habitId) => {
-    try {
-      const res = await fetch("/api/habit-complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ habitId }),
-      })
 
-      const json = await res.json()
-      if (!json.success) {
-        console.error(json)
-        return
-      }
+const toggleHabitCompletion = async (habitId) => {
+  try {
 
-      setHabits((prev) =>
-        prev.map((habit) =>
-          habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
-        )
+    const res = await fetch("/api/habit-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ habitId }),
+    });
+
+    if (!res.ok) throw new Error("Failed to toggle habit");
+    
+   
+    setHabits(prev => 
+      prev.map(habit => 
+        habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
       )
-    } catch (error) {
-      console.error("Error updating habit:", error)
-    }
-  }
+    );
 
+    // 3. Check for trophy after a short delay
+    setTimeout(checkAllCompletedAndAwardTrophy, 300);
+    
+  } catch (error) {
+    console.error("Error updating habit:", error);
+  }
+};
   const openDeleteDialog = (habitId, habitName) => {
     setDeleteDialog({
       isOpen: true,
@@ -201,6 +229,43 @@ fetchHabits();
       habitName: "",
     })
   }
+const checkAllCompletedAndAwardTrophy = async () => {
+  try {
+
+    await fetchHabits();
+    
+   
+    const today = new Date().toISOString().split('T')[0];
+    const res = await fetch('/api/increment-trophy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+
+    const data = await res.json();
+    
+    if (data.success) {
+    
+      setUserData(prev => ({
+        ...prev,
+        trophyCount: data.trophyCount
+      }));
+      
+      setIsExploding(true);
+   setLoadagain(!loadagain);
+      setTimeout(() => setIsExploding(false), 1500);
+      
+     
+      const userRes = await fetch(
+        `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+      );
+      const userData = await userRes.json();
+      setUserData(userData);
+    }
+  } catch (err) {
+    console.error("Failed to award trophy:", err);
+  }
+};
 
 const confirmDeleteHabit = async () => {
   if (!deleteDialog.habitId || !userId) return;
@@ -242,26 +307,42 @@ const confirmDeleteHabit = async () => {
     })
   }
 
-  async function saveUserInfoToDb(username, imageUrl) {
-    if (!user?.primaryEmailAddress?.emailAddress) {
-      console.error("No user email found")
-      return
+async function saveUserInfoToDb(username, imageUrl) {
+  if (!user?.primaryEmailAddress?.emailAddress) {
+    console.error("No user email found");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/user-info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user.primaryEmailAddress.emailAddress,
+        name: username,
+        imageUrl: imageUrl
+      }),
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to save user info");
     }
 
-    try {
-      await fetch("/api/user-info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.primaryEmailAddress.emailAddress,
-          name: username,
-          imageUrl,
-        }),
-      })
-    } catch (error) {
-      console.error("Error saving user info:", error)
-    }
+  
+    const userRes = await fetch(
+      `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+    );
+    const userData = await userRes.json();
+    setUserData(userData);
+
+    return data;
+  } catch (error) {
+    console.error("Error saving user info:", error);
+    throw error; 
   }
+}
 
   return (
     <div className="pt-16 min-h-screen bg-background p-6">
@@ -280,7 +361,7 @@ const confirmDeleteHabit = async () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Left Div - User Stats */}
-          <Card className="h-full">
+           <Card className="h-full">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold">Your Profile</CardTitle>
             </CardHeader>
@@ -291,7 +372,7 @@ const confirmDeleteHabit = async () => {
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={userData.imageUrl || undefined} alt="Profile" />
                     <AvatarFallback className="text-lg">
-                      {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
+                     {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
                     </AvatarFallback>
                   </Avatar>
                   <div className="absolute -bottom-1 -right-1">
@@ -349,7 +430,7 @@ const confirmDeleteHabit = async () => {
                     <Input
                       type="text"
                       placeholder="Enter username"
-                      value={tempUsername}
+                    value={tempUsername}
                       onChange={(e) => setTempUsername(e.target.value)}
                       className="text-sm"
                     />
@@ -368,40 +449,36 @@ const confirmDeleteHabit = async () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="text-sm font-semibold text-foreground text-center p-2 bg-muted rounded">
-                      {userData.username || "No username set"}
-                    </div>
-                    {userData.hasUsername ? (
-                      <Button size="sm" variant="outline" onClick={handleUsernameEdit} className="w-full h-7 text-xs">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit Username
-                      </Button>
-                    ) : (
-                      <Button size="sm" onClick={handleAddUsername} className="w-full h-7 text-xs">
-                        <User className="h-3 w-3 mr-1" />
-                        Add Username
-                      </Button>
-                    )}
+                   <div className="text-sm font-semibold text-foreground text-center p-2 bg-muted rounded">
+  {userData.username || "No username set"}
+</div>
+{userData.username ? (
+  <Button size="sm" variant="outline" onClick={handleUsernameEdit} className="w-full h-7 text-xs">
+    <Edit className="h-3 w-3 mr-1" />
+    Edit Username
+  </Button>
+) : (
+  <Button size="sm" onClick={handleAddUsername} className="w-full h-7 text-xs">
+    <User className="h-3 w-3 mr-1" />
+    Add Username
+  </Button>
+)}
                   </div>
                 )}
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="text-center p-2 bg-orange-50 dark:bg-orange-950 rounded-lg">
-                  <Flame className="h-4 w-4 text-orange-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                    {userStats.currentStreak}
-                  </div>
-                  <div className="text-xs text-orange-600 dark:text-orange-400">Current Streak</div>
-                </div>
-
-                <div className="text-center p-2 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                  <Target className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{userStats.longestStreak}</div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400">Longest Streak</div>
-                </div>
-              </div>
+         <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg">
+  <div className="flex items-center justify-center mb-2">
+    🏆
+  </div>
+  <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+  {trophy}
+  </div>
+  <div className="text-sm text-yellow-700 dark:text-yellow-300">
+    Trophies Earned
+  </div>
+</div>
 
               {/* Today's Progress */}
               <div className="text-center p-2 bg-green-50 dark:bg-green-950 rounded-lg">
@@ -514,7 +591,9 @@ const confirmDeleteHabit = async () => {
                   >
                     <div className="flex items-center space-x-3">
                       <button
-                        onClick={() => toggleHabitCompletion(habit.id)}
+                        onClick={() => toggleHabitCompletion(habit.id)
+                 
+                        }
                         className={`w-4 h-4 rounded-full border-2 ${
                           habit.completed ? "bg-green-500 border-green-500" : "border-muted-foreground/30"
                         }`}
@@ -542,7 +621,7 @@ const confirmDeleteHabit = async () => {
                         size="sm"
                         className="bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
                       >
-                        <Link href={`habitview/${habit.id}`}>
+                        <Link href={`/habitview/${habit.id}`}>
                           <LineChart className="h-4 w-4" />
                         </Link>
                       </Button>

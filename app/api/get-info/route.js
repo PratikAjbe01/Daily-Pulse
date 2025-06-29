@@ -26,7 +26,8 @@ export async function GET(req) {
     return NextResponse.json({
         id: userRecord.id,  
       name: userRecord.name,
-      imageUrl: userRecord.imageUrl
+      imageUrl: userRecord.imageUrl,
+      trophyCount:userRecord.trophyCount
     }, { status: 200 });
 
   } catch (err) {

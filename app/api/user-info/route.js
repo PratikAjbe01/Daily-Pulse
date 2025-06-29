@@ -1,71 +1,48 @@
-import { NextResponse } from "next/server";
-
-
-import { eq } from "drizzle-orm";
+// /app/api/user-info/route.ts
 import { db } from "@/configs";
 import { users } from "@/configs/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    const { username, email, imageUrl } = await req.json();
-
+    const { email, name, imageUrl } = await req.json();
+    
     if (!email) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Email is required",
-        },
+        { success: false, message: "Email is required" },
         { status: 400 }
       );
     }
 
-    // Find user by email
-    const foundUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email));
+    // Update user info
+    const updatedUser = await db
+      .update(users)
+      .set({
+        name: name || null,
+        imageUrl: imageUrl || null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.email, email))
+      .returning();
 
-    if (foundUsers.length === 0) {
+    if (updatedUser.length === 0) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "User not found",
-        },
+        { success: false, message: "User not found" },
         { status: 404 }
       );
     }
 
-    const user = foundUsers[0];
+    return NextResponse.json({
+      success: true,
+      message: "User info updated successfully",
+      data: updatedUser[0]
+    });
 
-    // Update fields
-    await db
-      .update(users)
-      .set({
-        ...(username && {  name: username }),
-        ...(imageUrl && { imageUrl }),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.email, email));
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "User info updated successfully!",
-        data: {
-          ...user,
-          name: username ?? user.name,
-          imageUrl: imageUrl ?? user.imageUrl,
-        },
-      },
-      { status: 200 }
-    );
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error("Error updating user info:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Internal Server Error",
-      },
+      { success: false, message: "Internal server error" },
       { status: 500 }
     );
   }

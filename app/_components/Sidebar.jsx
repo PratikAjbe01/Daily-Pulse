@@ -35,14 +35,14 @@ export default function Sidebar({ open, onClose }) {
                 isSignedIn?  <UserButton/>:<></>
             }
           
-          <a href="#" className="block text-gray-700 hover:text-gray-900">
+          <a href="/" className="block text-gray-700 hover:text-gray-900">
             Home
           </a>
-          <a href="#" className="block text-gray-700 hover:text-gray-900">
-            About
+          <a href="/dashboard" className="block text-gray-700 hover:text-gray-900">
+            Dashboard
           </a>
-          <a href="#" className="block text-gray-700 hover:text-gray-900">
-            Contact
+          <a href="/ranking" className="block text-gray-700 hover:text-gray-900">
+        LeaderBoard
           </a>
         </div>
       </div>
