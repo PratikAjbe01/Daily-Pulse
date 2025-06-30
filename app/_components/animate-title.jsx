@@ -41,7 +41,7 @@ export default function AnimatedTitle() {
   const CurrentIcon = icons[currentIconIndex]
 
   return (
-    <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
+    <span className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
       <span className="inline-block">
         {displayText.split("").map((char, index) => (
           <span
@@ -63,6 +63,6 @@ export default function AnimatedTitle() {
           <CurrentIcon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 text-primary transition-all duration-500" />
         </span>
       )}
-    </h1>
+    </span>
   )
 }

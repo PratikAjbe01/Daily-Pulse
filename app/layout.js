@@ -22,24 +22,24 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
-     <UserProvider>
-    <html lang="en" suppressHydrationWarning>
-      <head>
-
-        
-      </head>
-
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Navbar/>
-        
-     <ThemeProvider attribute='class' defaultTheme='light' enableSystem disableTransitionOnChange>
-      {children}
-     </ThemeProvider>
-      </body>
-    </html>
-    </UserProvider> 
+      <UserProvider>
+        <html lang="en" suppressHydrationWarning>
+          <head />
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Navbar />
+              {children}
+            </ThemeProvider>
+          </body>
+        </html>
+      </UserProvider>
     </ClerkProvider>
   );
 }

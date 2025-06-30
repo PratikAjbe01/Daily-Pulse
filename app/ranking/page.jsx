@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/pagination"
 import { db } from "@/configs"
 import { users } from "@/configs/schema"
+import Image from "next/image"
+import { AvatarImage } from "@radix-ui/react-avatar"
 
 export default function RankingPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -25,7 +27,7 @@ useEffect(()=>{
 const fetchallUser=async()=>{
   const userList = await db.select().from(users);
   const sortedUsers = userList.sort((a, b) => b.trophyCount - a.trophyCount);
-  console.log(sortedUsers)
+  
 setAllUsers(sortedUsers);
 
 }
@@ -39,9 +41,9 @@ fetchallUser();
   const currentUsers = allUsers.slice(startIndex, startIndex + usersPerPage)
 
   const getRankIcon = (position) => {
-    if (position === 1) return <Crown className="h-6 w-6 text-yellow-500" />
-    if (position === 2) return <Medal className="h-6 w-6 text-gray-400" />
-    if (position === 3) return <Award className="h-6 w-6 text-amber-600" />
+    if (position === 1) return <Crown className="h-4 w-4 text-yellow-500" />
+    if (position === 2) return <Medal className="h-4 w-4 text-gray-400" />
+    if (position === 3) return <Award className="h-4 w-4 text-amber-600" />
     return <Trophy className="h-5 w-5 text-muted-foreground" />
   }
 
@@ -108,7 +110,7 @@ fetchallUser();
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="space-y-2 p-6">
+            <div className="space-y-2 p-4">
               {currentUsers.map((user, index) => {
                 const globalPosition = startIndex + index + 1
                 return (
@@ -127,8 +129,9 @@ fetchallUser();
                       </div>
 
                       {/* User Info */}
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.imageUrl} alt="Profile" />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                           {(user.name || "N/A").charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -141,8 +144,8 @@ fetchallUser();
 
                     {/* Trophies */}
                     <div className="flex items-center space-x-2">
-                      <Trophy className="h-5 w-5 text-yellow-500" />
-                      <span className="text-xl font-bold text-foreground">{user.trophyCount.toLocaleString()}</span>
+                      <Trophy className="h-4 w-4 text-yellow-500" />
+                      <span className="text-sm font-bold text-foreground">{user.trophyCount.toLocaleString()}</span>
                     </div>
                   </div>
                 )

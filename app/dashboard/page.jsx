@@ -127,14 +127,16 @@ export default function HabitTrackerDashboard() {
 const handleUsernameSave = async () => {
   try {
    
-   setUserData(prev => ({
-        ...prev,
   
-      }));
     
    
     await saveUserInfoToDb(tempUsername, userData.imageUrl);
-    
+      setUserData(prev => ({
+      ...prev,
+      username: tempUsername,
+      hasUsername: true
+    }));
+
  
     setIsEditingUsername(false);
     
@@ -150,11 +152,36 @@ const handleUsernameSave = async () => {
   }
 };
 
-  const handleImageSave = async () => {
-    setUserData((prev) => ({ ...prev, imageUrl: tempImageUrl, hasImageUrl: true }))
-    await saveUserInfoToDb(userData.username, tempImageUrl)
-    setIsEditingImage(false)
+const handleImageSave = async () => {
+  try {
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: tempImageUrl }), 
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.message);
+    }
+
+    const cloudUrl = data.url;
+
+    
+    await saveUserInfoToDb(userData.username, cloudUrl);
+
+    setUserData(prev => ({
+      ...prev,
+      imageUrl: cloudUrl,
+      hasImageUrl: true,
+    }));
+
+    setIsEditingImage(false);
+  } catch (error) {
+    console.error("Failed to upload and save image:", error);
   }
+};
+
 
   const userStats = {
     currentStreak: 7,
@@ -245,7 +272,7 @@ const checkAllCompletedAndAwardTrophy = async () => {
     const data = await res.json();
     
     if (data.success) {
-    
+    setTrophy(data.trophyCount);
       setUserData(prev => ({
         ...prev,
         trophyCount: data.trophyCount
@@ -256,11 +283,7 @@ const checkAllCompletedAndAwardTrophy = async () => {
       setTimeout(() => setIsExploding(false), 1500);
       
      
-      const userRes = await fetch(
-        `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
-      );
-      const userData = await userRes.json();
-      setUserData(userData);
+      
     }
   } catch (err) {
     console.error("Failed to award trophy:", err);
@@ -370,7 +393,7 @@ async function saveUserInfoToDb(username, imageUrl) {
               <div className="flex flex-col items-center space-y-3">
                 <div className="relative">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={userData.imageUrl || undefined} alt="Profile" />
+                    <AvatarImage src={userData.imageUrl} alt="Profile" />
                     <AvatarFallback className="text-lg">
                      {userData.username ? userData.username.charAt(0).toUpperCase() : <User className="h-6 w-6" />}
                     </AvatarFallback>
@@ -379,19 +402,23 @@ async function saveUserInfoToDb(username, imageUrl) {
                     <label className="cursor-pointer flex items-center justify-center bg-background rounded-full p-1 border">
                       <Camera className="h-4 w-4 text-muted-foreground" />
                       <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            const fileUrl = URL.createObjectURL(file)
-                            setTempImageFile(file)
-                            setTempImageUrl(fileUrl)
-                            setIsEditingImage(true)
-                          }
-                        }}
-                      />
+  type="file"
+  accept="image/*"
+  className="hidden"
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setTempImageUrl(base64String); // base64 image
+        setIsEditingImage(true);
+      };
+      reader.readAsDataURL(file); // read file as base64
+    }
+  }}
+/>
+
                     </label>
                   </div>
                 </div>
@@ -569,7 +596,7 @@ async function saveUserInfoToDb(username, imageUrl) {
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">Today's Habits</CardTitle>
            
-              <div className="text-sm text-muted-foreground font-medium">{getCurrentDate()}</div>
+              <div className="text-xs text-muted-foreground font-medium">{getCurrentDate()}</div>
             </div>
           </CardHeader>
           <CardContent>
@@ -592,7 +619,6 @@ async function saveUserInfoToDb(username, imageUrl) {
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => toggleHabitCompletion(habit.id)
-                 
                         }
                         className={`w-4 h-4 rounded-full border-2 ${
                           habit.completed ? "bg-green-500 border-green-500" : "border-muted-foreground/30"
@@ -605,46 +631,47 @@ async function saveUserInfoToDb(username, imageUrl) {
                       >
                         {habit.name}
                       </span>
+                      {/* Inline badge for desktop */}
                       {habit.completed && (
                         <Badge
                           variant="secondary"
-                          className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                          className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hidden sm:inline-flex"
                         >
                           Completed
                         </Badge>
                       )}
                     </div>
+                    {/* Badge below name for mobile */}
+                    {habit.completed && (
+                      <div className="block sm:hidden mt-2 ml-5">
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-100 text-xs dark:bg-green-900 text-green-800 dark:text-green-200"
+                        >
+                          Completed
+                        </Badge>
+                      </div>
+                    )}
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+                        size="xs"
+                        className="bg-white p-1 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
                       >
                         <Link href={`/habitview/${habit.id}`}>
-                          <LineChart className="h-4 w-4" />
+                          <LineChart className="h-3 w-3" />
                         </Link>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleHabitCompletion(habit.id)}
-                        className={
-                          habit.completed
-                            ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-800"
-                            : "hover:bg-accent"
-                        }
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                     
 
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="xs"
                         onClick={() => openDeleteDialog(habit.id, habit.name)}
-                        className="bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900"
+                        className="bg-red-50 p-1 dark:bg-red-950 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>

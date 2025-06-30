@@ -9,16 +9,14 @@ export default function Footer() {
           <p className="text-muted-foreground text-sm">Made with ❤️ by DailyPulse Team</p>
 
           <div className="flex space-x-4">
-            <Link href="#" className="text-muted-foreground/70 hover:text-foreground transition-colors">
-              <Twitter className="w-5 h-5" />
-            </Link>
-            <Link href="#" className="text-muted-foreground/70 hover:text-foreground transition-colors">
+         
+            <Link href="https://github.com/PratikAjbe01" className="text-muted-foreground/70 hover:text-foreground transition-colors">
               <Github className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-muted-foreground/70 hover:text-foreground transition-colors">
+            <Link href="https://www.linkedin.com/in/pratik-ajbe-710bb326a/" className="text-muted-foreground/70 hover:text-foreground transition-colors">
               <Linkedin className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-muted-foreground/70 hover:text-foreground transition-colors">
+            <Link href="mailto:pratikajbe40@gmail.com" className="text-muted-foreground/70 hover:text-foreground transition-colors">
               <Mail className="w-5 h-5" />
             </Link>
           </div>

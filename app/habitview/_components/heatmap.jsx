@@ -123,7 +123,8 @@ const YearlyHeatmap = ({ habitid }) => {
   }
 
   const successRates = calculateSuccessRates()
-  const getColor = (completed) => completed ? '#30a14e' : '#ebedf0'
+  // Use Tailwind classes for heatmap cell colors
+  const getCellClass = (completed) => completed ? 'bg-green-500 dark:bg-green-400' : 'bg-muted'
 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate()
   const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay()
@@ -140,9 +141,8 @@ const YearlyHeatmap = ({ habitid }) => {
       if (isValidDay) {
         const dateStr = `${currentYear}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
         const completed = yearData[dateStr] || 0
-        const color = getColor(completed)
         cells.push(
-          <div key={i} className="w-3 h-3 rounded-sm border border-gray-200" style={{ backgroundColor: color }} />
+          <div key={i} className={`w-3 h-3 rounded-sm border border-border ${getCellClass(completed)}`} />
         )
       } else {
         cells.push(<div key={i} className="w-3 h-3" />)
@@ -150,11 +150,11 @@ const YearlyHeatmap = ({ habitid }) => {
     }
 
     return (
-      <div key={monthIndex} className="bg-white p-4 rounded-lg shadow-sm border flex-shrink-0 min-w-[200px]">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">{monthNames[monthIndex]}</h3>
+      <div key={monthIndex} className="bg-card p-4 rounded-lg shadow-sm border border-border flex-shrink-0 min-w-[200px]">
+        <h3 className="text-sm font-semibold text-card-foreground mb-3">{monthNames[monthIndex]}</h3>
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-xs text-gray-500 text-center w-3">{day[0]}</div>
+            <div key={day} className="text-xs text-muted-foreground text-center w-3">{day[0]}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">{cells}</div>
@@ -169,21 +169,21 @@ const YearlyHeatmap = ({ habitid }) => {
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white min-h-screen">
+    <div className="max-w-7xl mx-auto p-6 bg-background min-h-screen">
       <Link href='/dashboard'><Button><MoveLeft size={20} /></Button></Link>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">{habitInfo.name} - {currentYear}</h1>
-        <div className="flex items-center gap-6 text-sm text-gray-600">
-          <span>Total completed: <span className="font-semibold">{totalCompleted}</span></span>
-          <span>Completion rate: <span className="font-semibold">{completionRate}%</span></span>
+        <h1 className="text-3xl font-bold text-card-foreground mb-2">{habitInfo.name} - {currentYear}</h1>
+        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+          <span>Total completed: <span className="font-semibold text-foreground">{totalCompleted}</span></span>
+          <span>Completion rate: <span className="font-semibold text-foreground">{completionRate}%</span></span>
         </div>
       </div>
 
-      <div className="mb-8 flex items-center gap-2 text-sm text-gray-600">
+      <div className="mb-8 flex items-center gap-2 text-sm text-muted-foreground">
         <span>Not completed</span>
         <div className="flex gap-1">
-          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: '#ebedf0' }} />
-          <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: '#30a14e' }} />
+          <div className="w-3 h-3 rounded-sm border border-border bg-muted" />
+          <div className="w-3 h-3 rounded-sm border border-border bg-green-500 dark:bg-green-400" />
         </div>
         <span>Completed</span>
       </div>
@@ -192,20 +192,20 @@ const YearlyHeatmap = ({ habitid }) => {
         {Array.from({ length: 12 }, (_, i) => renderMonth(i))}
       </div>
 
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Current Progress</h2>
+      <div className="mt-8 bg-card p-6 rounded-lg shadow-sm border border-border">
+        <h2 className="text-lg font-semibold text-card-foreground mb-4">Current Progress</h2>
         <div className="grid grid-cols-2 gap-4 text-center">
-          <div><div className="text-2xl font-bold text-blue-600">{successRates.weeklyRate}%</div><div className="text-sm text-gray-600">Current week success rate</div></div>
-          <div><div className="text-2xl font-bold text-green-600">{successRates.monthlyRate}%</div><div className="text-sm text-gray-600">{currentMonthName} success rate</div></div>
+          <div><div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{successRates.weeklyRate}%</div><div className="text-sm text-muted-foreground">Current week success rate</div></div>
+          <div><div className="text-2xl font-bold text-green-600 dark:text-green-400">{successRates.monthlyRate}%</div><div className="text-sm text-muted-foreground">{currentMonthName} success rate</div></div>
         </div>
       </div>
 
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Habit Stats</h2>
+      <div className="mt-8 bg-card p-6 rounded-lg shadow-sm border border-border">
+        <h2 className="text-lg font-semibold text-card-foreground mb-4">Habit Stats</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
-          <div><div className="text-2xl font-bold text-purple-600">{habitInfo.currentStreak}</div><div className="text-sm text-gray-600">Current streak</div></div>
-          <div><div className="text-2xl font-bold text-orange-600">{habitInfo.longestStreak}</div><div className="text-sm text-gray-600">Longest streak</div></div>
-          <div><div className="text-2xl font-bold text-green-600">{totalCompleted}</div><div className="text-sm text-gray-600">Total completed</div></div>
+          <div><div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{habitInfo.currentStreak}</div><div className="text-sm text-muted-foreground">Current streak</div></div>
+          <div><div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{habitInfo.longestStreak}</div><div className="text-sm text-muted-foreground">Longest streak</div></div>
+          <div><div className="text-2xl font-bold text-green-600 dark:text-green-400">{totalCompleted}</div><div className="text-sm text-muted-foreground">Total completed</div></div>
         </div>
       </div>
     </div>

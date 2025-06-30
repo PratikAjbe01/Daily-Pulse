@@ -13,7 +13,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  imageUrl: varchar("image_url", { length: 512 }),
+  imageUrl:text("image_url"),
   trophyCount: integer("trophy_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
