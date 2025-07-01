@@ -45,7 +45,7 @@ console.log("Saved token?", res.ok);
 
 
   useEffect(() => {
-  
+  if (!isLoaded || !user || typeof window === "undefined") return;
      
     requestPermission();
   }, [isLoaded, user]);
