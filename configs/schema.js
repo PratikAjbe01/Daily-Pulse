@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   imageUrl:text("image_url"),
   trophyCount: integer("trophy_count").default(0),
+fcmToken: text("fcm_token").notNull().default(""),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -23,7 +25,6 @@ export const habits = pgTable("habits", {
   id: serial("id").primaryKey(),
  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
-
   currentStreak: integer("current_streak").default(0),
   longestStreak: integer("longest_streak").default(0),
   createdAt: timestamp("created_at").defaultNow(),

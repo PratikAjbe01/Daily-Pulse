@@ -121,7 +121,7 @@ function computeStreaks(completions) {
   }
 
   currentStreak = tempStreak;
-  currentStreak++;
+  currentStreak;
 
   return { currentStreak, longestStreak };
 }

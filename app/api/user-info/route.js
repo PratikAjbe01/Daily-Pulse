@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    const { email, name, imageUrl } = await req.json();
+    const { email, name, imageUrl, fcmToken} = await req.json();
     
     if (!email) {
       return NextResponse.json(
@@ -21,6 +21,7 @@ export async function POST(req) {
       .set({
         name: name || null,
         imageUrl: imageUrl || null,
+          fcmToken: fcmToken || null,
         updatedAt: new Date()
       })
       .where(eq(users.email, email))
