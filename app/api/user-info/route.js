@@ -14,16 +14,19 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+const updateData = {
+  name: name || null,
+  imageUrl: imageUrl || null,
+  updatedAt: new Date()
+};
 
+if (fcmToken) {
+  updateData.fcmToken = fcmToken;
+}
     // Update user info
     const updatedUser = await db
       .update(users)
-      .set({
-        name: name || null,
-        imageUrl: imageUrl || null,
-          fcmToken: fcmToken || null,
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(users.email, email))
       .returning();
 
