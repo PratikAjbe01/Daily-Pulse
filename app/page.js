@@ -9,13 +9,14 @@ import WhySection from "./_components/why-section";
 
 
 import { useUser } from "@clerk/nextjs";
-import { getToken } from "firebase/messaging";
-import { messaging } from "@/firebase";
+
 
 export default function Home() {
 const { isLoaded, user } = useUser();
 
   async function requestPermission() {
+     const { getToken } = await import("firebase/messaging");
+        const { messaging } = await import("@/firebase");
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       // Generate Token
@@ -25,6 +26,7 @@ const { isLoaded, user } = useUser();
       });
       console.log("Token Gen", token);
       // Send this token  to server ( db)
+      
         
   
       const email = user?.primaryEmailAddress?.emailAddress;
