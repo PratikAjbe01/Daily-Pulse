@@ -152,35 +152,69 @@ const handleUsernameSave = async () => {
   }
 };
 
+// const handleImageSave = async () => {
+//   try {
+//     const res = await fetch('/api/upload-image', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ image: tempImageUrl }), 
+//     });
+
+//     const data = await res.json();
+//     if (!data.success) {
+//       throw new Error(data.message);
+//     }
+
+//     const cloudUrl = data.url;
+
+    
+//     await saveUserInfoToDb(userData.username, cloudUrl);
+
+//     setUserData(prev => ({
+//       ...prev,
+//       imageUrl: cloudUrl,
+//       hasImageUrl: true,
+//     }));
+
+//     setIsEditingImage(false);
+//   } catch (error) {
+//     console.error("Failed to upload and save image:", error);
+//   }
+// };
 const handleImageSave = async () => {
   try {
     const res = await fetch('/api/upload-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: tempImageUrl }), 
+      body: JSON.stringify({ image: tempImageUrl }),
     });
 
     const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.message);
-    }
+    if (!data.success) throw new Error(data.message);
 
     const cloudUrl = data.url;
 
-    
     await saveUserInfoToDb(userData.username, cloudUrl);
 
-    setUserData(prev => ({
-      ...prev,
-      imageUrl: cloudUrl,
-      hasImageUrl: true,
-    }));
+    // 🔄 Refetch user data after save
+    const userRes = await fetch(
+      `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+    );
+    const freshUserData = await userRes.json();
+
+    setUserData({
+      username: freshUserData.name || "",
+      imageUrl: freshUserData.imageUrl || "",
+      hasUsername: !!freshUserData.name,
+      hasImageUrl: !!freshUserData.imageUrl,
+    });
 
     setIsEditingImage(false);
   } catch (error) {
     console.error("Failed to upload and save image:", error);
   }
 };
+
 
 
   const userStats = {
