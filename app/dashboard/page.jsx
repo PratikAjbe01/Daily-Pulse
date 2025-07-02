@@ -26,6 +26,8 @@ export default function HabitTrackerDashboard() {
   const { user } = useUser()
    const loadagain=useAppUser()
     const setLoadagain=useAppUser()
+    const [isUserLoading, setIsUserLoading] = useState(true)
+
   const [isDeleting, setIsDeleting] = useState(false)
     const [isExploding, setIsExploding]=useState(false)
   const [habits, setHabits] = useState([ ])
@@ -63,35 +65,42 @@ export default function HabitTrackerDashboard() {
       fetchHabits()
     }
   }, [userId])
- useEffect(() => {
-    async function fetchUserInfo() {
-      if (!user?.primaryEmailAddress?.emailAddress) return
+useEffect(() => {
+  async function fetchUserInfo() {
+    setIsUserLoading(true);
 
-      try {
-        const res = await fetch(
-          `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
-        )
-        if (!res.ok) throw new Error("Failed to fetch user info")
-        const data = await res.json()
+    try {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) {
+        console.warn("No email found from Clerk user.");
+        return;
+      }
 
-   if (data) {
-    setTrophy(data.trophyCount);
+      const res = await fetch(`/api/get-info?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("Failed to fetch user info");
+
+      const data = await res.json();
+
+      if (data) {
+        setTrophy(data.trophyCount);
         setUserData({
           username: data.name || "",
           imageUrl: data.imageUrl || "",
           hasUsername: !!data.name,
           hasImageUrl: !!data.imageUrl,
-        
         });
         setUserId(data.id);
-        }
-      } catch (err) {
-        console.error("Error fetching user info:", err)
       }
+    } catch (err) {
+      console.error("Error fetching user info:", err);
+    } finally {
+      setIsUserLoading(false); // ✅ Always set loading to false
     }
+  }
 
-    fetchUserInfo()
-  }, [user])
+  fetchUserInfo();
+}, [user]);
+
 
 
   const fetchHabits = async () => {
@@ -126,61 +135,34 @@ export default function HabitTrackerDashboard() {
 
 const handleUsernameSave = async () => {
   try {
-   
-  
-    
-   
-    await saveUserInfoToDb(tempUsername, userData.imageUrl);
-      setUserData(prev => ({
+    if (!tempUsername) {
+      console.warn("No username provided.");
+      return;
+    }
+
+    const imageUrlToSave = userData.imageUrl || "";
+
+    await saveUserInfoToDb(tempUsername, imageUrlToSave);
+
+    setUserData(prev => ({
       ...prev,
       username: tempUsername,
-      hasUsername: true
+      hasUsername: true,
     }));
 
- 
     setIsEditingUsername(false);
-    
-    
   } catch (error) {
     console.error("Failed to save username:", error);
- 
-    setUserData(prev => ({ 
-      ...prev, 
-      username: prev.username, 
-      hasUsername: !!prev.username 
+
+    setUserData(prev => ({
+      ...prev,
+      username: prev.username,
+      hasUsername: !!prev.username,
     }));
   }
 };
 
-// const handleImageSave = async () => {
-//   try {
-//     const res = await fetch('/api/upload-image', {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ image: tempImageUrl }), 
-//     });
 
-//     const data = await res.json();
-//     if (!data.success) {
-//       throw new Error(data.message);
-//     }
-
-//     const cloudUrl = data.url;
-
-    
-//     await saveUserInfoToDb(userData.username, cloudUrl);
-
-//     setUserData(prev => ({
-//       ...prev,
-//       imageUrl: cloudUrl,
-//       hasImageUrl: true,
-//     }));
-
-//     setIsEditingImage(false);
-//   } catch (error) {
-//     console.error("Failed to upload and save image:", error);
-//   }
-// };
 const handleImageSave = async () => {
   try {
     const res = await fetch('/api/upload-image', {
@@ -194,9 +176,14 @@ const handleImageSave = async () => {
 
     const cloudUrl = data.url;
 
-    await saveUserInfoToDb(userData.username, cloudUrl);
+    const finalUsername = userData.username;
+    if (!finalUsername) {
+      console.warn("Username is not set. Cannot save image with null username.");
+      return;
+    }
 
-    // 🔄 Refetch user data after save
+    await saveUserInfoToDb(finalUsername, cloudUrl);
+
     const userRes = await fetch(
       `/api/get-info?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
     );
@@ -214,6 +201,8 @@ const handleImageSave = async () => {
     console.error("Failed to upload and save image:", error);
   }
 };
+
+
 
 
 
@@ -513,7 +502,9 @@ async function saveUserInfoToDb(username, imageUrl) {
                    <div className="text-sm font-semibold text-foreground text-center p-2 bg-muted rounded">
   {userData.username || "No username set"}
 </div>
-{userData.username ? (
+{isUserLoading ? (
+  <div className="text-xs text-muted-foreground">Loading...</div>
+) : userData.username ? (
   <Button size="sm" variant="outline" onClick={handleUsernameEdit} className="w-full h-7 text-xs">
     <Edit className="h-3 w-3 mr-1" />
     Edit Username
@@ -524,6 +515,7 @@ async function saveUserInfoToDb(username, imageUrl) {
     Add Username
   </Button>
 )}
+
                   </div>
                 )}
               </div>

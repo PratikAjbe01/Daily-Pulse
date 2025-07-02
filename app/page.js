@@ -36,7 +36,7 @@ console.log("Sending token to server with email:", email);
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
   email,
-    fcmToken: token
+  fcmToken: token || undefined,
   }),
 });
 console.log("Saved token?", res.ok);
